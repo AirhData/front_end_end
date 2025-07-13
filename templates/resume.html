@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}Mon CV - AIrh{% endblock %}
+
+{% block content %}
+<style>
+    #loadingSpinner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+    }
+
+    #cvDataContainer.loading {
+        opacity: 0.3;
+        pointer-events: none;
+    }
+
+   
+    .upload-area {
+        border: 2px dashed #e5e7eb; 
+        border-radius: 0.5rem;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background-color: #f9fafb;
+    }
+
+    .upload-area:hover {
+        border-color: #6366f1; 
+        background: #f0f4ff;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <h1 class="page-title">Gestion du CV</h1>
+    <hr class="mb-4">
+
+    <div class="row">
+        <div class="col-lg-4 mb-4 mb-lg-0">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-primary text-white d-flex align-items-center">
+                    <i class="fas fa-file-upload me-2"></i>
+                    <h5 class="mb-0">Gérer mon CV</h5>
+                </div>
+                <div class="card-body d-flex flex-column">
+                    <form id="uploadForm" enctype="multipart/form-data" class="flex-grow-1">
+                        <div class="upload-area" id="dropZone">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-3"></i>
+                            <p class="upload-text mb-2">Glissez-déposez ou cliquez ici</p>
+                            <input type="file" id="fileInput" name="resume" accept=".pdf" class="d-none">
+                            <p class="upload-hint text-muted small mt-3">Format PDF uniquement.</p>
+                        </div>
+                        <div id="fileName" class="mt-3 text-center text-success fw-bold"></div>
+                        <div id="uploadStatus" class="mt-2 text-center small"></div>
+                        <div class="d-grid mt-3">
+                            <button type="submit" class="btn btn-primary" id="submitButton" disabled>
+                                <i class="fas fa-cogs me-2"></i>Analyser mon CV
+                            </button>
+                        </div>
+                    </form>
+
+                    {% if user.candidate_mongo_id %}
+                    <hr>
+                    <p class="text-center text-muted small">Un CV est déjà enregistré.</p>
+                    <div class="d-grid">
+                         <button id="deleteButton" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Supprimer le CV actuel
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                 <div class="card-header d-flex align-items-center">
+                    <i class="fas fa-tasks me-2"></i>
+                    <h5 class="mb-0">Profil Analysé</h5>
+                </div>
+                <div class="card-body" style="position: relative;"> <div id="loadingSpinner" class="text-center d-none">
+                        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Analyse de votre CV en cours, veuillez patienter...</p>
+                    </div>
+
+                    <div id="cvDataContainer">
+                        {% if cv_data %}
+                            <div class="card mb-3">
+                                <div class="card-header"><strong>Informations Personnelles</strong></div>
+                                <div class="card-body">
+                                    <p class="mb-1"><strong>Nom:</strong> {{ cv_data.get('informations_personnelles', {}).get('nom', 'Non spécifié') }}</p>
+                                    <p class="mb-1"><strong>Email:</strong> {{ cv_data.get('informations_personnelles', {}).get('email', 'Non spécifié') }}</p>
+                                    <p class="mb-1"><strong>Téléphone:</strong> {{ cv_data.get('informations_personnelles', {}).get('numero_de_telephone', 'Non spécifié') }}</p>
+                                    <p class="mb-0"><strong>Localisation:</strong> {{ cv_data.get('informations_personnelles', {}).get('localisation', 'Non spécifiée') }}</p>
+                                </div>
+                            </div>
+
+                            <div class="card mb-3">
+                                <div class="card-header"><strong>Compétences</strong></div>
+                                <div class="card-body">
+                                    {% if cv_data.get('compétences', {}).get('hard_skills') %}
+                                        <h6>Compétences Techniques</h6>
+                                        {% for skill in cv_data.compétences.hard_skills %}<span class="badge bg-info me-1 mb-1">{{ skill }}</span>{% endfor %}
+                                    {% else %}
+                                        <p class="text-muted small">Aucune compétence technique trouvée.</p>
+                                    {% endif %}
+
+                                     {% if cv_data.get('compétences', {}).get('soft_skills') %}
+                                        <h6 class="mt-3">Compétences Comportementales</h6>
+                                        {% for skill in cv_data.compétences.soft_skills %}<span class="badge bg-secondary me-1 mb-1">{{ skill }}</span>{% endfor %}
+                                    {% else %}
+                                         <p class="text-muted small mt-2">Aucune compétence comportementale trouvée.</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="card mb-3">
+                                <div class="card-header"><strong>Expériences Professionnelles</strong></div>
+                                <ul class="list-group list-group-flush">
+                                {% for exp in cv_data.get('expériences', []) %}
+                                    <li class="list-group-item">
+                                        <h5>{{ exp.Poste | default('Poste non spécifié') }} <small class="text-muted">chez {{ exp.Entreprise | default('Entreprise non spécifiée') }}</small></h5>
+                                        <p class="mb-1 text-muted">{{ exp.start_date | default('Date de début non spécifiée') }} - {{ exp.end_date | default('Aujourd\'hui') }}</p>
+                                        {% if exp.get('responsabilités') %}
+                                            <ul class="mt-2 mb-0">{% for resp in exp.responsabilités %}<li><small>{{ resp }}</small></li>{% endfor %}</ul>
+                                        {% endif %}
+                                    </li>
+                                {% else %}
+                                    <li class="list-group-item text-muted">Aucune expérience professionnelle trouvée.</li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+                            
+                            <div class="card">
+                                <div class="card-header"><strong>Formations</strong></div>
+                                <ul class="list-group list-group-flush">
+                                {% for form in cv_data.get('formations', []) %}
+                                    <li class="list-group-item">
+                                        <h5>{{ form.degree | default('Diplôme non spécifié') }}</h5>
+                                        <p class="mb-0 text-muted">{{ form.institution | default('Établissement non spécifié') }} ({{ form.start_date | default('') }} - {{ form.end_date | default('') }})</p>
+                                    </li>
+                                {% else %}
+                                    <li class="list-group-item text-muted">Aucune formation trouvée.</li>
+                                {% endfor %}
+                                </ul>
+                            </div>
+
+                        {% else %}
+                            <div class="text-center p-5">
+                                <i class="fas fa-eye-slash fa-3x text-muted mb-3"></i>
+                                <h5 class="text-muted">Aucune donnée à afficher</h5>
+                                <p class="text-muted">Veuillez télécharger un CV pour que notre IA l'analyse.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const uploadForm = document.getElementById('uploadForm');
+    const submitButton = document.getElementById('submitButton');
+    const uploadStatus = document.getElementById('uploadStatus');
+    const fileNameDisplay = document.getElementById('fileName');
+    const loadingSpinner = document.getElementById('loadingSpinner');
+    const cvDataContainer = document.getElementById('cvDataContainer');
+    const deleteButton = document.getElementById('deleteButton');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, e => { e.preventDefault(); e.stopPropagation(); });
+    });
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.style.borderColor = '#6366f1');
+    });
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, () => dropZone.style.borderColor = '#e5e7eb');
+    });
+    dropZone.addEventListener('drop', (e) => {
+        fileInput.files = e.dataTransfer.files;
+        handleFileSelect();
+    });
+    dropZone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleFileSelect);
+
+    function handleFileSelect() {
+        const file = fileInput.files[0];
+        if (file) {
+            if (file.type === 'application/pdf') {
+                submitButton.disabled = false;
+                fileNameDisplay.textContent = `Fichier prêt : ${file.name}`;
+                uploadStatus.textContent = '';
+            } else {
+                uploadStatus.textContent = 'Erreur : Veuillez sélectionner un fichier PDF.';
+                uploadStatus.className = 'mt-2 text-center small text-danger';
+                fileNameDisplay.textContent = '';
+                submitButton.disabled = true;
+            }
+        }
+    }
+    uploadForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(uploadForm);
+        submitButton.disabled = true;
+        loadingSpinner.classList.remove('d-none');
+        cvDataContainer.classList.add('loading');
+        uploadStatus.textContent = 'Envoi du fichier en cours...';
+        uploadStatus.className = 'mt-2 text-center small text-info';
+
+        try {
+            const response = await fetch("{{ url_for('upload_resume') }}", { method: 'POST', body: formData });
+            if (response.ok) {
+                uploadStatus.textContent = 'Analyse terminée ! Rechargement de la page...';
+                uploadStatus.className = 'mt-2 text-center small text-success';
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Une erreur est survenue lors de l\'analyse.');
+            }
+        } catch (error) {
+            uploadStatus.textContent = `Erreur : ${error.message}`;
+            uploadStatus.className = 'mt-2 text-center small text-danger';
+            submitButton.disabled = false;
+            loadingSpinner.classList.add('d-none');
+            cvDataContainer.classList.remove('loading');
+        }
+    });
+    if(deleteButton) {
+        deleteButton.addEventListener('click', async () => {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer votre CV ? Cette action est irréversible.')) {
+                return;
+            }
+            try {
+                const response = await fetch("{{ url_for('delete_resume') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (response.ok) {
+                    window.location.reload();
+                } else {
+                    throw new Error('La suppression a échoué.');
+                }
+            } catch (error) {
+                alert(`Erreur : ${error.message}`);
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,10 @@
+Fonctionnel.
+
+- version prod du simulateur fonctionne, charge les données supabase depuis l'api google cloud
+- version dev adapté aussi
+pour les données de l'API il y'a une fonction qui va charger les données en cache.
+
+planning : 
+faire une interface utilisateur simple : 
+commencer par faire une landing page simple qui sera utilisé comme page d'acceuil
+2 ieme etape la page du simulateur d'entretient
