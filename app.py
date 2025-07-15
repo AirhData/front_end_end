@@ -267,7 +267,6 @@ def interview_ai():
             payload = {
                 "cv_document": cv_document,
                 "job_offer": job_offer_formatted,  # Structure adaptée
-                "messages": messages_from_client,
                 "conversation_history": messages_from_client
             }
             
