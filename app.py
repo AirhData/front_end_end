@@ -233,6 +233,56 @@ def interview_ai():
     MODEL_API_URL = Config.MODEL_API_URL
     if request.method == 'POST':
         try:
+            # --- DÉBUT DE LA MODIFICATION DE TEST ---
+            
+            # On met en commentaire toute la logique de récupération des données
+            # data = request.get_json()
+            # messages_from_client = data.get('messages', [])
+            # job_id = data.get('job_id')
+            # mongo_manager = MongoManager()
+            # cv_document = mongo_manager.get_profile_by_id(g.user.candidate_mongo_id)
+            # jobs = fetch_job_offers()
+            # job_offer = next((job for job in jobs if job.get('id') == job_id), None)
+            
+            # On force le payload qui a fonctionné dans la documentation /docs
+            payload = {
+              "user_id": "user_test_123",
+              "job_offer_id": "job_test_abc",
+              "cv_document": { "candidat": { "informations_personnelles": { "nom": "Jane Doe" }, "compétences": { "hard_skills": ["Python", "SQL"], "soft_skills": ["Communication"]}, "expériences": [{"poste": "Data Analyst", "entreprise": "Tech Corp", "période": "2022-2024"}], "projets": {}, "formations": [{"diplome": "Master en IA", "ecole": "Université de Paris"}]}},
+              "job_offer": { "entreprise": "Startup Inc.", "poste": "AI Project Manager", "description": "Gérer des projets IA.", "mission": "Piloter les équipes.", "pole": "Data", "profil_recherche": "Profil avec 5 ans d'expérience.", "competences": ["Gestion de projet", "IA"]},
+              "messages": [{ "role": "user", "content": "Bonjour, pouvez-vous me parler du poste ?"}],
+              "conversation_history": [{ "role": "user", "content": "Bonjour, pouvez-vous me parler du poste ?"}]
+            }
+
+            logging.info("ENVOI DU PAYLOAD DE TEST FORCÉ...")
+
+            api_response = requests.post(f"{MODEL_API_URL}/simulate-interview/", json=payload)
+            api_response.raise_for_status() 
+            
+            response_data = api_response.json()
+            ai_message = response_data.get("response")
+            
+            # On renvoie directement le message de l'IA
+            return jsonify({"response": ai_message})
+
+            # --- FIN DE LA MODIFICATION DE TEST ---
+
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Erreur de communication avec l'API du modèle: {e}")
+            if e.response:
+                logging.error(f"Réponse de l'API: {e.response.text}")
+            return jsonify({'response': "Désolé, une erreur de communication avec l'assistant IA est survenue."})
+        except Exception as e:
+            error_details = traceback.format_exc()
+            logging.error(f"Erreur critique inattendue dans POST /interview-ai: {error_details}")
+            return jsonify({'response': "Désolé, une erreur interne est survenue."})
+'''
+@app.route('/interview-ai', methods=['GET', 'POST'])
+@login_required
+def interview_ai():
+    MODEL_API_URL = Config.MODEL_API_URL
+    if request.method == 'POST':
+        try:
             data = request.get_json()
             messages_from_client = data.get('messages', [])
             job_id = data.get('job_id')
@@ -314,7 +364,7 @@ def interview_ai():
         logging.error(f"Erreur critique dans GET /interview-ai: {error_details}")
         flash("Une erreur interne est survenue lors du chargement de la page d'entretien.", "danger")
         return redirect(url_for('home'))
-
+'''
 
 @app.route('/feedbacks')
 @login_required
