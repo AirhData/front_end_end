@@ -254,13 +254,21 @@ def interview_ai():
                 mongo_manager.close_connection()
                 return jsonify({'error': 'Offre d\'emploi introuvable.'}), 404
 
-            # --- CORRECTION PRINCIPALE ---
-            # Construction du payload qui respecte la structure attendue par l'API
+            job_offer_formatted = {
+                "entreprise": job_offer.get("entreprise", "Entreprise non spécifiée"),
+                "poste": job_offer.get("poste", "Poste non spécifié"),
+                "description": job_offer.get("description_poste", job_offer.get("description", "Description non disponible")),
+                "mission": job_offer.get("mission", job_offer.get("description", "Mission non spécifiée")),
+                "pole": job_offer.get("pole", job_offer.get("departement", "Pôle non spécifié")),
+                "profil_recherche": job_offer.get("profil_recherche", "Profil recherché non spécifié"),
+                "competences": job_offer.get("competences", job_offer.get("skills_required", "Compétences non spécifiées"))
+            }
+            
             payload = {
                 "user_id": g.user.google_id,
                 "job_offer_id": job_id,
                 "cv_document": cv_document,
-                "job_offer": job_offer,
+                "job_offer": job_offer_formatted,  # Structure adaptée
                 "messages": messages_from_client,
                 "conversation_history": messages_from_client
             }
