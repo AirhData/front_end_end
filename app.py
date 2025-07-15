@@ -231,7 +231,6 @@ def jobs():
 @login_required
 def interview_ai():
     MODEL_API_URL = Config.MODEL_API_URL
-    # Gère les messages pendant l'entretien
     if request.method == 'POST':
         try:
             data = request.get_json()
@@ -246,37 +245,42 @@ def interview_ai():
             cv_document = mongo_manager.get_profile_by_id(g.user.candidate_mongo_id)
             if not cv_document:
                 mongo_manager.close_connection()
-                return jsonify({'response': 'Je ne peux pas commencer l\'entretien car aucun CV n\'a été trouvé. Veuillez d\'abord en télécharger un.'})
+                return jsonify({'response': 'Je ne peux pas commencer car aucun CV n\'a été trouvé.'})
 
             jobs = fetch_job_offers()
             job_offer = next((job for job in jobs if job.get('id') == job_id), None)
             if not job_offer:
                 mongo_manager.close_connection()
                 return jsonify({'error': 'Offre d\'emploi introuvable.'}), 404
+            job_offer_formatted = {
+                "entreprise": job_offer.get("entreprise", "Entreprise non spécifiée"),
+                "poste": job_offer.get("poste", "Poste non spécifié"),
+                "description": job_offer.get("description_poste", job_offer.get("description", "Description non disponible")),
+                "mission": job_offer.get("mission", job_offer.get("description", "Mission non spécifiée")),
+                "pole": job_offer.get("pole", job_offer.get("departement", "Pôle non spécifié")),
+                "profil_recherche": job_offer.get("profil_recherche", "Profil recherché non spécifié"),
+                "competences": job_offer.get("competences", job_offer.get("skills_required", "Compétences non spécifiées"))
+            }
 
-            # --- CORRECTION PRINCIPALE ---
-            # Construction du payload qui respecte la structure attendue par l'API
             payload = {
                 "user_id": g.user.google_id,
                 "job_offer_id": job_id,
-                "cv_document": cv_document,
-                "job_offer": job_offer,
+                "cv_document": cv_document,           
+                "job_offer": job_offer_formatted,    
                 "messages": messages_from_client,
                 "conversation_history": messages_from_client
             }
-            
+
+
+            logging.info(f"PAYLOAD FINAL ENVOYÉ À L'API: {json.dumps(payload, indent=2, ensure_ascii=False)}")
             api_response = requests.post(f"{MODEL_API_URL}/simulate-interview/", json=payload)
-            api_response.raise_for_status() # Lève une exception si le statut n'est pas 2xx
-            
+            api_response.raise_for_status() 
             response_data = api_response.json()
             ai_message = response_data.get("response")
-
             updated_history = messages_from_client + [{"role": "assistant", "content": ai_message}]
             mongo_manager.save_conversation_history(g.user.google_id, job_id, updated_history)
-            
             mongo_manager.close_connection()
             return jsonify({"response": ai_message})
-
         except requests.exceptions.RequestException as e:
             logging.error(f"Erreur de communication avec l'API du modèle: {e}")
             if e.response:
