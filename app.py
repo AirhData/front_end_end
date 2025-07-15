@@ -265,8 +265,6 @@ def interview_ai():
             }
             
             payload = {
-                "user_id": g.user.google_id,
-                "job_offer_id": job_id,
                 "cv_document": cv_document,
                 "job_offer": job_offer_formatted,  # Structure adaptée
                 "messages": messages_from_client,
