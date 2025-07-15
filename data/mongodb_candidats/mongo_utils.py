@@ -12,6 +12,7 @@ class MongoManager:
         self.db = self.client[Config.MONGO_DB_NAME]
         self.candidate_collection = self.db[Config.MONGO_CV_COLLECTION]  
         self.historique_entretient = self.db[Config.MONGO_INTERVIEW_COLLECTION]
+        self.feedback_collection = self.db[Config.MONGO_FEEDBACK_COLLECTION]
         
     # -- CRUD pour le profils des candidats --
     def save_profile(self, profile_data):
@@ -100,6 +101,34 @@ class MongoManager:
         """Supprime l'historique de conversation pour un utilisateur et une offre d'emploi."""
         logging.info(f"Réinitialisation de l'historique pour l'utilisateur {google_id} et l'offre {job_id}")
         self.historique_entretient.delete_one({"google_id": google_id, "job_id": job_id})   
+
+
+    def save_feedback(self, user_google_id: str, job_id: str, feedback_data: dict):
+        """
+        Sauvegarde ou met à jour le feedback pour un entretien donné.
+        Le feedback est un dictionnaire structuré.
+        """
+        logging.info(f"Sauvegarde du feedback pour l'utilisateur {user_google_id} et l'offre {job_id}")
+        query = {"user_google_id": user_google_id, "job_id": job_id}
+        update = {
+            "$set": {
+                "user_google_id": user_google_id,
+                "job_id": job_id,
+                "feedback_data": feedback_data, # Sauvegarde du dictionnaire complet
+                "last_updated": datetime.utcnow()
+            }
+        }
+        self.feedback_collection.update_one(query, update, upsert=True)
+
+    def get_feedback(self, user_google_id: str, job_id: str) -> dict:
+        """
+        Récupère le document de feedback pour un entretien donné.
+        """
+        logging.info(f"Récupération du feedback pour l'utilisateur {user_google_id} et l'offre {job_id}")
+        feedback_doc = self.feedback_collection.find_one(
+            {"user_google_id": user_google_id, "job_id": job_id}
+        )
+        return feedback_doc if feedback_doc else None
 
     def close_connection(self):
         self.client.close()

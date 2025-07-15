@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Mes Feedbacks d'Entretien{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Mes Feedbacks d'Entretien</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if feedbacks %}
+    <div class="list-group">
+        {% for feedback in feedbacks %}
+        <a href="{{ url_for('get_feedback_details', feedback_id=feedback._id) }}" class="list-group-item list-group-item-action flex-column align-items-start mb-3">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ feedback.job_title }}</h5>
+                <small class="text-muted">{{ feedback.formatted_timestamp }}</small>
+            </div>
+            <p class="mb-1">Statut: {{ feedback.status }}</p>
+            <small class="text-muted">ID Feedback: {{ feedback._id }}</small>
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info" role="alert">
+        Vous n'avez pas encore de feedbacks d'entretien. Lancez une simulation pour en générer un !
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

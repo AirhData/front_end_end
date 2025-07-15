@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}Détails du Feedback{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1 class="mb-4">Détails du Feedback pour {{ feedback.job_title }}</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    {% if feedback %}
+    <div class="card mb-4">
+        <div class="card-header">
+            Feedback ID: {{ feedback._id }}
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">Offre d'emploi: {{ feedback.job_title }}</h5>
+            <p class="card-text">Date: {{ feedback.formatted_timestamp }}</p>
+            <p class="card-text">Statut: {{ feedback.status }}</p>
+            <hr>
+            <h6 class="card-subtitle mb-2 text-muted">Contenu du Feedback:</h6>
+            <div class="feedback-content">
+                {{ feedback.feedback_content | safe }}
+            </div>
+        </div>
+    </div>
+    <a href="{{ url_for('feedbacks') }}" class="btn btn-secondary">Retour à Mes Feedbacks</a>
+    {% else %}
+    <div class="alert alert-warning" role="alert">
+        Feedback non trouvé.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
